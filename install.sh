@@ -13,3 +13,5 @@ git config --global alias.ap 'add -p'
 # status
 git config --global alias.s 'status'
 git config --global alias.sp 'status --porcelain'
+# scratch
+git config --global alias.test '!echo "test stuff here"'
