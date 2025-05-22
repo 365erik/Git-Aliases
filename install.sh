@@ -1,5 +1,6 @@
 git config --global alias.log1 'log --oneline'
 git config --global alias.l1 'log --oneline'
+git config --global alias.ll 'log --oneline --graph --all --decorate'
 # list all aliases
 git config --global alias.aliases 'config --get-regexp ^alias'
 # Checkout -b
