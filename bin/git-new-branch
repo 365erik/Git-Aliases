@@ -33,12 +33,18 @@ if [ -z "$short_description" ]; then
     exit 1
 fi
 
-# Prompt for long description using Git's editor
-echo "Opening editor for long description..."
-temp_file=$(mktemp)
+# Ask if user wants to add a long description
+echo -n "Add a long description? (y/N): "
+read -r add_long_desc
 
-# Create template content
-cat > "$temp_file" << EOF
+long_description=""
+if [[ "$add_long_desc" =~ ^[Yy]$ ]]; then
+    # Prompt for long description using Git's editor
+    echo "Opening editor for long description..."
+    temp_file=$(mktemp)
+
+    # Create template content
+    cat > "$temp_file" << EOF
 # Enter your long description for ticket ${ticket_number}
 # Lines starting with # will be ignored and removed
 #
@@ -48,15 +54,16 @@ cat > "$temp_file" << EOF
 
 EOF
 
-# Use Git's configured editor
-git_editor=$(git var GIT_EDITOR)
-$git_editor "$temp_file"
+    # Use Git's configured editor
+    git_editor=$(git var GIT_EDITOR)
+    $git_editor "$temp_file"
 
-# Read content back, excluding comment lines and empty lines
-long_description=$(grep -v '^#' "$temp_file" | sed -e '/^[[:space:]]*$/d' | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}')
+    # Read content back, excluding comment lines and empty lines
+    long_description=$(grep -v '^#' "$temp_file" | sed -e '/^[[:space:]]*$/d' | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}')
 
-# Clean up temp file
-rm "$temp_file"
+    # Clean up temp file
+    rm "$temp_file"
+fi
 
 # Clean up description (replace spaces with hyphens, remove special characters)
 # macOS-compatible version using multiple sed commands instead of complex regex
