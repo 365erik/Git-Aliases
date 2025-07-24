@@ -26,16 +26,20 @@ fi
 
 # Prompt for description
 echo -n "Enter branch description: "
-read -r description
+read -r short_description
 
-if [ -z "$description" ]; then
+if [ -z "$short_description" ]; then
     echo "Error: Description cannot be empty."
     exit 1
 fi
 
+# Prompt for long description
+echo -n "Enter long description (optional): "
+read -r long_description
+
 # Clean up description (replace spaces with hyphens, remove special characters)
 # macOS-compatible version using multiple sed commands instead of complex regex
-clean_description=$(echo "$description" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
+clean_description=$(echo "$short_description" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
 
 # Create branch name
 branch_name="${gituser}/${ticket_number}/${clean_description}"
@@ -50,7 +54,22 @@ git pull origin main
 git checkout -b "$branch_name"
 
 # Make initial empty commit with formatted message
-commit_message="${ticket_number} - ${description}"
+# Create Jira link
+jira_link="[${ticket_number}](https://jetblueairways.atlassian.net/browse/${ticket_number})"
+
+# Build commit message
+if [ -n "$long_description" ]; then
+    commit_message="${ticket_number} - ${short_description}
+
+${jira_link}
+
+${long_description}"
+else
+    commit_message="${ticket_number} - ${short_description}
+
+${jira_link}"
+fi
+
 git commit --allow-empty -m "$commit_message"
 
 echo "Successfully created and switched to branch: $branch_name"
