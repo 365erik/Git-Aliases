@@ -1,0 +1,55 @@
+#!/bin/bash
+
+# Git custom command: git new-branch
+# Creates a new branch with format: ${gituser}/${ticket_number}/${description}
+
+set -e
+
+# Get git user from config
+gituser=$(git config user.githubusername 2>/dev/null)
+
+# Check if gituser is configured
+if [ -z "$gituser" ]; then
+    echo "Error: git config user.githubusername is not set."
+    echo "Please run: git config --global user.githubusername \"your-username\""
+    exit 1
+fi
+
+# Prompt for ticket number
+echo -n "Enter ticket number: "
+read -r ticket_number
+
+if [ -z "$ticket_number" ]; then
+    echo "Error: Ticket number cannot be empty."
+    exit 1
+fi
+
+# Prompt for description
+echo -n "Enter branch description: "
+read -r description
+
+if [ -z "$description" ]; then
+    echo "Error: Description cannot be empty."
+    exit 1
+fi
+
+# Clean up description (replace spaces with hyphens, remove special characters)
+# macOS-compatible version using multiple sed commands instead of complex regex
+clean_description=$(echo "$description" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
+
+# Create branch name
+branch_name="${gituser}/${ticket_number}/${clean_description}"
+
+echo "Creating branch: $branch_name"
+
+# Switch to main and pull latest
+git checkout main
+git pull origin main
+
+# Create and switch to new branch
+git checkout -b "$branch_name"
+
+# Make initial empty commit
+git commit --allow-empty -m "First commit on $branch_name"
+
+echo "Successfully created and switched to branch: $branch_name"
