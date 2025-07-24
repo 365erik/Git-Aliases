@@ -33,9 +33,30 @@ if [ -z "$short_description" ]; then
     exit 1
 fi
 
-# Prompt for long description
-echo -n "Enter long description (optional): "
-read -r long_description
+# Prompt for long description using Git's editor
+echo "Opening editor for long description..."
+temp_file=$(mktemp)
+
+# Create template content
+cat > "$temp_file" << EOF
+# Enter your long description for ticket ${ticket_number}
+# Lines starting with # will be ignored and removed
+#
+# Ticket: ${ticket_number}
+# Short description: ${short_description}
+#
+
+EOF
+
+# Use Git's configured editor
+git_editor=$(git var GIT_EDITOR)
+$git_editor "$temp_file"
+
+# Read content back, excluding comment lines and empty lines
+long_description=$(grep -v '^#' "$temp_file" | sed -e '/^[[:space:]]*$/d' | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}')
+
+# Clean up temp file
+rm "$temp_file"
 
 # Clean up description (replace spaces with hyphens, remove special characters)
 # macOS-compatible version using multiple sed commands instead of complex regex
