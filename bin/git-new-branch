@@ -39,10 +39,12 @@ done
 first_ticket="${ticket_numbers[0]}"
 
 # Determine title format
-if [ ${#ticket_numbers[@]} -gt 1 ]; then
-    title_prefix="${first_ticket}, ... - "
-else
+if [ ${#ticket_numbers[@]} -eq 1 ]; then
     title_prefix="${first_ticket} - "
+elif [ ${#ticket_numbers[@]} -eq 2 ]; then
+    title_prefix="${ticket_numbers[0]}, ${ticket_numbers[1]} - "
+else
+    title_prefix="${ticket_numbers[0]}, ${ticket_numbers[1]}, ... - "
 fi
 
 # Prompt for description
