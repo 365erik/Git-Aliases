@@ -15,13 +15,34 @@ if [ -z "$gituser" ]; then
     exit 1
 fi
 
-# Prompt for ticket number
-echo -n "Enter ticket number: "
-read -r ticket_number
+# Prompt for ticket number(s)
+echo -n "Enter ticket number(s) (comma-separated): "
+read -r ticket_input
 
-if [ -z "$ticket_number" ]; then
+if [ -z "$ticket_input" ]; then
     echo "Error: Ticket number cannot be empty."
     exit 1
+fi
+
+# Parse ticket numbers
+IFS=',' read -ra ticket_array <<< "$ticket_input"
+ticket_numbers=()
+for ticket in "${ticket_array[@]}"; do
+    # Trim whitespace
+    trimmed_ticket=$(echo "$ticket" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    if [ -n "$trimmed_ticket" ]; then
+        ticket_numbers+=("$trimmed_ticket")
+    fi
+done
+
+# Get first ticket for branch naming
+first_ticket="${ticket_numbers[0]}"
+
+# Determine title format
+if [ ${#ticket_numbers[@]} -gt 1 ]; then
+    title_prefix="${first_ticket}, ... - "
+else
+    title_prefix="${first_ticket} - "
 fi
 
 # Prompt for description
@@ -45,10 +66,10 @@ if [[ "$add_long_desc" =~ ^[Yy]$ ]]; then
 
     # Create template content
     cat > "$temp_file" << EOF
-# Enter your long description for ticket ${ticket_number}
+# Enter your long description for ticket(s): ${ticket_input}
 # Lines starting with # will be ignored and removed
 #
-# Ticket: ${ticket_number}
+# Ticket(s): ${ticket_input}
 # Short description: ${short_description}
 #
 
@@ -69,8 +90,8 @@ fi
 # macOS-compatible version using multiple sed commands instead of complex regex
 clean_description=$(echo "$short_description" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
 
-# Create branch name
-branch_name="${gituser}/${ticket_number}/${clean_description}"
+# Create branch name using first ticket
+branch_name="${gituser}/${first_ticket}/${clean_description}"
 
 echo "Creating branch: $branch_name"
 
@@ -82,20 +103,27 @@ git pull origin main
 git checkout -b "$branch_name"
 
 # Make initial empty commit with formatted message
-# Create Jira link
-jira_link="[${ticket_number}](https://jetblueairways.atlassian.net/browse/${ticket_number})"
+# Create Jira links for all tickets
+jira_links=""
+for ticket in "${ticket_numbers[@]}"; do
+    if [ -n "$jira_links" ]; then
+        jira_links="${jira_links}
+"
+    fi
+    jira_links="${jira_links}[${ticket}](https://jetblueairways.atlassian.net/browse/${ticket})  "
+done
 
 # Build commit message
 if [ -n "$long_description" ]; then
-    commit_message="${ticket_number} - ${short_description}
+    commit_message="${title_prefix}${short_description}
 
-${jira_link}
+${jira_links}
 
 ${long_description}"
 else
-    commit_message="${ticket_number} - ${short_description}
+    commit_message="${title_prefix}${short_description}
 
-${jira_link}"
+${jira_links}"
 fi
 
 git commit --allow-empty -m "$commit_message"
